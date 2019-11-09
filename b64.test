@@ -1,0 +1,42 @@
+#!/bin/sh
+
+test_str()
+{
+        printf "%s" "$1" > original
+        printf "%s" "$2" > expected
+
+        ./b64 < original > enc
+        diff enc expected || exit 1
+
+        ./b64 -d < enc > dec
+        diff dec original || exit 1
+}
+
+test_rnd()
+{
+        head -c "$1" /dev/urandom > rnd
+
+        ./b64 < rnd > enc
+        ./b64 -d < enc > dec
+        diff dec rnd || exit 1
+}
+
+cleanup()
+{
+        rm original expected rnd dec enc
+}
+
+test_str "" ""
+test_str "f" "Zg=="
+test_str "fo" "Zm8="
+test_str "foo" "Zm9v"
+test_str "foob" "Zm9vYg=="
+test_str "fooba" "Zm9vYmE="
+test_str "foobar" "Zm9vYmFy"
+test_str "foobarb" "Zm9vYmFyYg=="
+test_str "foobarba" "Zm9vYmFyYmE="
+test_str "foobarbaz" "Zm9vYmFyYmF6"
+for i in `seq 1000 1024`; do test_rnd $i; done
+
+cleanup
+echo "all tests passed"
