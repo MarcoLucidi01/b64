@@ -23,8 +23,8 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define USAGE   "usage: b64 [-d]\n" \
                 "  base64 encode/decode standard input to standard output\n"
