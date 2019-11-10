@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,34 +30,34 @@
 #define USAGE   "usage: b64 [-d]\n" \
                 "  base64 encode/decode standard input to standard output\n"
 
+#define ARRAYLEN(a)     (sizeof((a)) / sizeof((a)[0]))
+#define INVALIDDECVAL   (ARRAYLEN(enctable))
+
+static void     builddectable(void);
 static void     die(const char *reason);
 static void     encode(void);
 static void     decode(void);
 static int      getcharskipn(void);
 static int      isvalid(int c);
 
-static char enctable[] =
+static const unsigned char enctable[] =
 {
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-        'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b',
-        'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-        'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3',
-        '4', '5', '6', '7', '8', '9', '+', '/',
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+        'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+        'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+        'w', 'x', 'y', 'z', '0', '1', '2', '3',
+        '4', '5', '6', '7', '8', '9', '+', '/'
 };
 
-static int dectable[] =
-{
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63, 52, 53, 54, 55, 56, 57,
-        58, 59, 60, 61, -1, -1, -1, -1, -1, -1, -1,  0,  1,  2,  3,  4,  5,  6,
-         7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-        25, -1, -1, -1, -1, -1, -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
-        37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
-};
+static unsigned char dectable[UCHAR_MAX + 1];
 
 int main(int argc, char **argv)
 {
+        builddectable();
+
         if (argc == 1)
                 encode();
         else if (argc == 2 && strcmp(argv[1], "-d") == 0)
@@ -65,6 +66,19 @@ int main(int argc, char **argv)
                 die(USAGE);
 
         return 0;
+}
+
+static void builddectable(void)
+{
+        unsigned int i;
+
+        for (i = 0; i < ARRAYLEN(dectable); i++)
+                dectable[i] = INVALIDDECVAL;
+
+        for (i = 0; i < ARRAYLEN(enctable); i++)
+                dectable[enctable[i]] = i;
+
+        dectable['='] = 0;      /* pad character has a decoded value equal to 0 */
 }
 
 static void die(const char *reason)
@@ -111,8 +125,8 @@ static void decode(void)
 
                 g = dectable[c1];
                 g = (g << 6) | dectable[c2];
-                g = (g << 6) | (c3 == '=' ? 0 : dectable[c3]);
-                g = (g << 6) | (c4 == '=' ? 0 : dectable[c4]);
+                g = (g << 6) | dectable[c3];
+                g = (g << 6) | dectable[c4];
 
                 putchar((g >> 16) & 0xFF);
                 if (c3 != '=')
@@ -141,8 +155,5 @@ static int getcharskipn(void)
 
 static int isvalid(int c)
 {
-        return (c >= 'A' && c <= 'Z')
-            || (c >= 'a' && c <= 'z')
-            || (c >= '0' && c <= '9')
-            || c == '+' || c == '/' || c == '=';
+        return c != EOF && c >= 0 && c <= UCHAR_MAX && dectable[c] != INVALIDDECVAL;
 }
