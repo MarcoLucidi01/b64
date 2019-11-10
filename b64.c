@@ -65,6 +65,9 @@ int main(int argc, char **argv)
         else
                 die(USAGE);
 
+        if (ferror(stdin) || ferror(stdout))
+                die("b64: I/O error\n");
+
         return 0;
 }
 
